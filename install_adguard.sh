@@ -31,46 +31,41 @@ if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
   echo "🔒 SSL certificate for $DOMAIN is already installed."
 else
   echo "🔐 This script will now install an SSL certificate for $DOMAIN using Certbot."
-  echo "ℹ️ Make sure port 80 and 443 are open and not blocked by firewall or other services."
-  read -p "Proceed with SSL installation? (y/n): " SSL_CONFIRM
-  if [[ "$SSL_CONFIRM" != "y" ]]; then
-    echo "❌ SSL installation skipped. Exiting setup."
-    exit 1
-  fi
-  sudo apt update
-  sudo apt install -y certbot
-  sudo certbot certonly --standalone -d "$DOMAIN"
+  echo "ℹ️ Make sure ports 80 and 443 are open and not blocked by firewall or other services."
+  read -p "Proceed with SSL installation? (y/yes/n/no): " SSL_CONFIRM
+  case "$SSL_CONFIRM" in
+    y|yes)
+      sudo apt update
+      sudo apt install -y certbot
+      sudo certbot certonly --standalone -d "$DOMAIN"
+      ;;
+    n|no)
+      echo "❌ SSL installation skipped. Exiting setup."
+      exit 1
+      ;;
+    *)
+      echo "❌ Invalid input. Please enter y/yes or n/no."
+      exit 1
+      ;;
+  esac
 fi
 
 # Step 2: Install AdGuard
-read -p "Proceed with AdGuard Home installation? (y/n): " CONFIRM
-if [[ "$CONFIRM" != "y" ]]; then
-  echo "❌ Installation cancelled."
-  exit 1
-fi
-
-echo "📦 Downloading and installing AdGuard Home..."
-curl -s -S -L https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz -o adguard.tar.gz
-tar -xzf adguard.tar.gz
-cd AdGuardHome
-
-# Ensure binary is executable
-chmod +x AdGuardHome
-
-# Check if binary is valid ELF
-if file ./AdGuardHome | grep -q "ELF"; then
-  echo "✅ AdGuardHome binary is valid. Proceeding with installation..."
-  sudo ./AdGuardHome -s install
-else
-  echo "❌ ERROR: AdGuardHome binary is not valid for this system architecture."
-  exit 1
-fi
-
-# Auto-start AdGuard Home
-echo "🔁 Ensuring AdGuard Home is running as a service..."
-sudo systemctl enable AdGuardHome
-sudo systemctl start AdGuardHome
-sudo systemctl status AdGuardHome --no-pager
+read -p "Proceed with AdGuard Home installation? (y/yes/n/no): " CONFIRM
+case "$CONFIRM" in
+  y|yes)
+    echo "📦 Downloading and installing AdGuard Home using official script..."
+    curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
+    ;;
+  n|no)
+    echo "❌ Installation cancelled."
+    exit 1
+    ;;
+  *)
+    echo "❌ Invalid input. Please enter y/yes or n/no."
+    exit 1
+    ;;
+esac
 
 # Step 3: Free Port 53
 echo "🔓 Freeing up port 53 from systemd-resolved..."
