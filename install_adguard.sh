@@ -14,8 +14,35 @@ fi
 
 echo "🧠 OS: $OS | Architecture: $ARCH"
 
-# Step 1: Preinstallation
-echo "🔧 Setting up HTTPS & DNS Validation"
+# Check if AdGuardHome already installed
+if [ -f "/opt/AdGuardHome/AdGuardHome" ]; then
+  echo "⚠️ AdGuard Home is already installed."
+  echo "Choose an option:"
+  echo "1) Reinstall"
+  echo "2) Uninstall"
+  echo "3) Continue without changes"
+  read -p "Enter your choice (1/2/3): " EXISTING_CHOICE
+  case "$EXISTING_CHOICE" in
+    1)
+      curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -r -v
+      ;;
+    2)
+      curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -u -v
+      echo "✅ AdGuard Home uninstalled."
+      exit 0
+      ;;
+    3)
+      echo "➡️ Continuing with existing installation..."
+      ;;
+    *)
+      echo "❌ Invalid choice."; exit 1 ;;
+  esac
+else
+  echo "📦 Installing AdGuard Home..."
+  curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
+fi
+
+# DNS & SSL Setup
 read -p "Enter your DNS domain name (e.g. dns.domain.com): " DOMAIN
 SERVER_IP=$(curl -s https://ipinfo.io/ip)
 DNS_IP=$(dig +short "$DOMAIN")
@@ -30,44 +57,13 @@ fi
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
   echo "🔒 SSL certificate for $DOMAIN is already installed."
 else
-  echo "🔐 This script will now install an SSL certificate for $DOMAIN using Certbot."
-  echo "ℹ️ Make sure ports 80 and 443 are open and not blocked by firewall or other services."
-  read -p "Proceed with SSL installation? (y/yes/n/no): " SSL_CONFIRM
-  case "$SSL_CONFIRM" in
-    y|yes)
-      sudo apt update
-      sudo apt install -y certbot
-      sudo certbot certonly --standalone -d "$DOMAIN"
-      ;;
-    n|no)
-      echo "❌ SSL installation skipped. Exiting setup."
-      exit 1
-      ;;
-    *)
-      echo "❌ Invalid input. Please enter y/yes or n/no."
-      exit 1
-      ;;
-  esac
+  echo "🔐 Installing SSL certificate using Certbot..."
+  sudo apt update
+  sudo apt install -y certbot
+  sudo certbot certonly --standalone -d "$DOMAIN"
 fi
 
-# Step 2: Install AdGuard
-read -p "Proceed with AdGuard Home installation? (y/yes/n/no): " CONFIRM
-case "$CONFIRM" in
-  y|yes)
-    echo "📦 Downloading and installing AdGuard Home using official script..."
-    curl -s -S -L https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | sh -s -- -v
-    ;;
-  n|no)
-    echo "❌ Installation cancelled."
-    exit 1
-    ;;
-  *)
-    echo "❌ Invalid input. Please enter y/yes or n/no."
-    exit 1
-    ;;
-esac
-
-# Step 3: Free Port 53
+# Free Port 53
 echo "🔓 Freeing up port 53 from systemd-resolved..."
 sudo systemctl disable systemd-resolved
 sudo systemctl stop systemd-resolved
@@ -89,7 +85,53 @@ esac
 echo "nameserver $DNS" | sudo tee /etc/resolv.conf
 sudo chattr +i /etc/resolv.conf
 
+# DoH Activation
+read -p "Do you want to enable DNS-over-HTTPS (DoH)? (y/yes/n/no): " DOH_CONFIRM
+case "$DOH_CONFIRM" in
+  y|yes)
+    echo "🔧 Enabling DoH with domain $DOMAIN..."
+    CONFIG_PATH="/opt/AdGuardHome/AdGuardHome.yaml"
+    sudo sed -i "s/^tls:.*/tls:\n  enabled: true\n  server_name: \"$DOMAIN\"\n  certificate_chain: \"/etc/letsencrypt/live/$DOMAIN/fullchain.pem\"\n  private_key: \"/etc/letsencrypt/live/$DOMAIN/privkey.pem\"/" "$CONFIG_PATH"
+    echo "✅ DoH configuration updated."
+    ;;
+  n|no)
+    echo "➡️ Skipping DoH setup."
+    ;;
+  *)
+    echo "❌ Invalid input."; exit 1 ;;
+esac
+
+# Upstream Override
+read -p "Do you want to set AdGuard upstream to local (127.0.0.1:5353)? (y/yes/n/no): " UPSTREAM_CONFIRM
+case "$UPSTREAM_CONFIRM" in
+  y|yes)
+    echo "🔧 Updating upstream DNS to 127.0.0.1:5353..."
+    sudo sed -i "s/^upstream_dns:.*/upstream_dns:\n  - 127.0.0.1:5353/" "$CONFIG_PATH"
+    echo "✅ Upstream DNS updated."
+    ;;
+  n|no)
+    echo "➡️ Keeping default upstream."
+    ;;
+  *)
+    echo "❌ Invalid input."; exit 1 ;;
+esac
+
+# DoH Test
+read -p "Do you want to test DoH endpoint? (y/yes/n/no): " TEST_CONFIRM
+case "$TEST_CONFIRM" in
+  y|yes)
+    echo "🔍 Testing DoH endpoint..."
+    curl -I "https://$DOMAIN/dns-query" || echo "❌ DoH test failed."
+    echo "✅ If you see HTTP 200 or 403, DoH is active."
+    ;;
+  n|no)
+    echo "➡️ Skipping DoH test."
+    ;;
+  *)
+    echo "❌ Invalid input."; exit 1 ;;
+esac
+
 # Final
-echo "🎉 AdGuard Home is ready to use!"
-echo "🔗 Open in your browser: http://$SERVER_IP:3000"
+echo "🎉 AdGuard Home setup complete!"
+echo "🔗 Access it at: http://$SERVER_IP:3000"
 
