@@ -57,16 +57,37 @@ fi
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
   echo "🔒 SSL certificate for $DOMAIN is already installed."
 else
-  echo "🔐 Installing SSL certificate using Certbot..."
-  sudo apt update
-  sudo apt install -y certbot
-  sudo certbot certonly --standalone -d "$DOMAIN"
+  echo "🔐 This script will now install an SSL certificate for $DOMAIN using Certbot."
+  echo "ℹ️ Make sure ports 80 and 443 are open and not blocked by firewall or other services."
+  read -p "Proceed with SSL installation? (y/yes/n/no): " SSL_CONFIRM
+  case "$SSL_CONFIRM" in
+    y|yes)
+      sudo apt update
+      sudo apt install -y certbot
+      sudo certbot certonly --standalone -d "$DOMAIN"
+      ;;
+    n|no)
+      echo "❌ SSL installation skipped. Exiting setup."
+      exit 1
+      ;;
+    *)
+      echo "❌ Invalid input. Please enter y/yes or n/no."
+      exit 1
+      ;;
+  esac
 fi
 
 # Free Port 53
 echo "🔓 Freeing up port 53 from systemd-resolved..."
 sudo systemctl disable systemd-resolved
 sudo systemctl stop systemd-resolved
+
+# Unlock resolv.conf if previously locked
+if lsattr /etc/resolv.conf 2>/dev/null | grep -q 'i'; then
+  echo "🔓 Unlocking /etc/resolv.conf..."
+  sudo chattr -i /etc/resolv.conf
+fi
+
 sudo rm -f /etc/resolv.conf
 
 echo "🧠 Choose a DNS resolver:"
@@ -91,7 +112,7 @@ case "$DOH_CONFIRM" in
   y|yes)
     echo "🔧 Enabling DoH with domain $DOMAIN..."
     CONFIG_PATH="/opt/AdGuardHome/AdGuardHome.yaml"
-    sudo sed -i "s/^tls:.*/tls:\n  enabled: true\n  server_name: \"$DOMAIN\"\n  certificate_chain: \"/etc/letsencrypt/live/$DOMAIN/fullchain.pem\"\n  private_key: \"/etc/letsencrypt/live/$DOMAIN/privkey.pem\"/" "$CONFIG_PATH"
+    sudo sed -i "/^tls:/,/^[^ ]/c\tls:\n  enabled: true\n  server_name: \"$DOMAIN\"\n  certificate_chain: \"/etc/letsencrypt/live/$DOMAIN/fullchain.pem\"\n  private_key: \"/etc/letsencrypt/live/$DOMAIN/privkey.pem\"" "$CONFIG_PATH"
     echo "✅ DoH configuration updated."
     ;;
   n|no)
@@ -106,7 +127,7 @@ read -p "Do you want to set AdGuard upstream to local (127.0.0.1:5353)? (y/yes/n
 case "$UPSTREAM_CONFIRM" in
   y|yes)
     echo "🔧 Updating upstream DNS to 127.0.0.1:5353..."
-    sudo sed -i "s/^upstream_dns:.*/upstream_dns:\n  - 127.0.0.1:5353/" "$CONFIG_PATH"
+    sudo sed -i "/^upstream_dns:/,/^[^ ]/c\upstream_dns:\n  - 127.0.0.1:5353" "$CONFIG_PATH"
     echo "✅ Upstream DNS updated."
     ;;
   n|no)
