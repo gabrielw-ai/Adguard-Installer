@@ -13,26 +13,64 @@ if [ "$OS" != "ubuntu" ] && [ "$OS" != "centos" ]; then
 fi
 
 echo "🧠 OS: $OS | Architecture: $ARCH"
-
 # Initial AdGuard check
 if [ -f "/opt/AdGuardHome/AdGuardHome" ]; then
   echo "⚠️ AdGuard Home is already installed."
   echo "Choose an option:"
   echo "1) Reinstall AdGuard Home"
-  echo "2) Uninstall AdGuard Home"
+  echo "2) Uninstall AdGuard Home and optionally clean up system"
   echo "3) Continue to configure DoH and upstream settings"
   read -p "Enter your choice (1/2/3): " EXISTING_CHOICE
   case "$EXISTING_CHOICE" in
-    1) curl -sSL https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | bash -s -- -r -v ;;
-    2) curl -sSL https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | bash -s -- -u -v
-       echo "✅ AdGuard Home uninstalled."; exit 0 ;;
-    3) echo "➡️ Proceeding to configure DoH and upstream settings..." ;;
-    *) echo "❌ Invalid choice."; exit 1 ;;
+    1)
+      curl -sSL https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | bash -s -- -r -v
+      ;;
+    2)
+      curl -sSL https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | bash -s -- -u -v
+      echo "✅ AdGuard Home uninstalled."
+
+      read -p "Do you want to delete SSL certificates for your domain? (y/n): " DELETE_CERT
+      if [[ "$DELETE_CERT" =~ ^(y|yes)$ ]]; then
+        read -p "Enter your domain name (e.g. dns.domain.com): " DOMAIN
+        sudo rm -rf "/etc/letsencrypt/live/$DOMAIN"
+        sudo rm -rf "/etc/letsencrypt/archive/$DOMAIN"
+        sudo rm -rf "/etc/letsencrypt/renewal/$DOMAIN.conf"
+        echo "✅ SSL certificates deleted."
+      else
+        echo "➡️ Keeping SSL certificates."
+      fi
+
+      read -p "Do you want to restore systemd-resolved and default DNS resolver? (y/n): " RESTORE_DNS
+      if [[ "$RESTORE_DNS" =~ ^(y|yes)$ ]]; then
+        echo "🔁 Restoring systemd-resolved..."
+        sudo systemctl enable systemd-resolved
+        sudo systemctl start systemd-resolved
+
+        echo "🔧 Resetting /etc/resolv.conf..."
+        sudo chattr -i /etc/resolv.conf 2>/dev/null || true
+        sudo rm -f /etc/resolv.conf
+        sudo ln -s /run/systemd/resolve/resolv.conf /etc/resolv.conf
+        echo "✅ DNS resolver restored."
+      else
+        echo "➡️ Skipping DNS resolver restore."
+      fi
+
+      echo "🧼 Uninstall cleanup complete."
+      exit 0
+      ;;
+    3)
+      echo "➡️ Proceeding to configure DoH and upstream settings..."
+      ;;
+    *)
+      echo "❌ Invalid choice."
+      exit 1
+      ;;
   esac
 else
   echo "📦 Installing AdGuard Home..."
   curl -sSL https://raw.githubusercontent.com/AdguardTeam/AdGuardHome/master/scripts/install.sh | bash -s -- -v
 fi
+
 
 # DNS & SSL Setup
 read -p "Enter your DNS domain name (e.g. dns.domain.com): " DOMAIN
