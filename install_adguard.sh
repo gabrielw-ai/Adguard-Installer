@@ -107,11 +107,18 @@ echo "nameserver $DNS" | sudo tee /etc/resolv.conf
 sudo chattr +i /etc/resolv.conf
 
 # DoH Activation
+CONFIG_PATH="/opt/AdGuardHome/AdGuardHome.yaml"
+
+if [ ! -f "$CONFIG_PATH" ]; then
+  echo "⚠️ AdGuardHome.yaml not found. Please access AdGuard Home via browser at http://$SERVER_IP:3000 and complete initial setup."
+  echo "🔁 After that, re-run this script to apply DoH and upstream settings."
+  exit 1
+fi
+
 read -p "Do you want to enable DNS-over-HTTPS (DoH)? (y/yes/n/no): " DOH_CONFIRM
 case "$DOH_CONFIRM" in
   y|yes)
     echo "🔧 Enabling DoH with domain $DOMAIN..."
-    CONFIG_PATH="/opt/AdGuardHome/AdGuardHome.yaml"
     sudo sed -i "/^tls:/,/^[^ ]/c\tls:\n  enabled: true\n  server_name: \"$DOMAIN\"\n  certificate_chain: \"/etc/letsencrypt/live/$DOMAIN/fullchain.pem\"\n  private_key: \"/etc/letsencrypt/live/$DOMAIN/privkey.pem\"" "$CONFIG_PATH"
     echo "✅ DoH configuration updated."
     ;;
