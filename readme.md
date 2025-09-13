@@ -1,50 +1,72 @@
 # 🚀 AdGuard Home Installer for Ubuntu & CentOS
 
-Installer otomatis untuk AdGuard Home yang dilengkapi dengan **validasi DNS**, **pemasangan SSL via Certbot**, dan **konfigurasi resolver DNS**. Sangat cocok untuk sysadmin yang ingin melakukan setup cepat dan aman di server pribadi mereka.
+An automatic installer for AdGuard Home that includes **DNS validation**, **SSL setup via Certbot**, and **DNS resolver configuration**. Perfect for sysadmins who want a fast and secure setup on their private servers.
 
 ---
 
-## ✨ Fitur Utama
+## ✨ Key Features
 
-- Validasi domain DNS dan IP server
-- Pemasangan SSL otomatis menggunakan Certbot
-- Installasi AdGuard Home versi terbaru
-- Auto-start service AdGuard Home
-- Membebaskan port 53 dari `systemd-resolved`
-- Pilihan resolver DNS (Cloudflare, Google, Quad9)
-- **Uninstaller lengkap** untuk rollback
+- Validates DNS domain and server IP
+- Automatically installs SSL using Certbot
+- Installs the latest version of AdGuard Home
+- Auto-starts AdGuard Home as a service
+- Frees up port 53 from `systemd-resolved`
+- DNS resolver options (Cloudflare, Google, Quad9)
+- **Complete uninstaller** for rollback
 
 ---
 
-## 📦 Instalasi
+## 📦 Installation
 
-### Langkah-langkah:
+### Steps:
 
-1.  **Clone** repositori ini ke server Anda:
+1. **Clone** this repository to your server:
 
     ```bash
-    git clone [https://github.com/username/adguard-installer.git](https://github.com/username/adguard-installer.git)
+    git clone https://github.com/username/adguard-installer.git
     cd adguard-installer
     ```
 
-2.  **Jalankan installer** dengan perintah berikut:
+2. **Run the installer** with the following command:
 
     ```bash
     chmod +x install-adguard.sh
     ./install-adguard.sh
     ```
 
-Installer akan memandu Anda melalui beberapa tahapan, seperti:
+    The installer will guide you through:
 
--   Memasukkan nama domain DNS
--   Validasi apakah domain sudah mengarah ke IP server
--   Pemasangan SSL otomatis jika belum tersedia
--   Download dan install AdGuard Home
--   Konfigurasi DNS resolver (`1.1.1.1` / `8.8.8.8` / `9.9.9.9`)
--   Menjalankan AdGuard sebagai service
--   Menampilkan URL akses: `http://<IP>:3000`
+    - Entering your DNS domain name
+    - Validating whether the domain points to your server IP
+    - Automatically installing SSL if not already present
+    - Downloading and installing AdGuard Home
+    - Configuring DNS resolver (`1.1.1.1` / `8.8.8.8` / `9.9.9.9`)
+    - Starting AdGuard Home as a service
+    - Displaying access URL: `http://<IP>:3000`
 
-### ✅ Kompatibilitas
+3. **Uninstall (if needed):**
 
--   Ubuntu 20.04 / 22.04
--   CentOS 7 / 8
+    ```bash
+    chmod +x uninstall-adguard.sh
+    ./uninstall-adguard.sh
+    ```
+
+    The uninstaller will:
+
+    - Remove AdGuard Home and its service
+    - Offer to delete SSL certificates
+    - Restore `systemd-resolved` and default DNS resolver
+
+---
+
+### ✅ Compatibility
+
+- Ubuntu 20.04 / 22.04
+- CentOS 7 / 8
+
+---
+
+### 📄 License
+
+MIT License — free to use and modify.
+
