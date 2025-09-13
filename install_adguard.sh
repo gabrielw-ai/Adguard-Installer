@@ -16,7 +16,7 @@ echo "🧠 OS: $OS | Architecture: $ARCH"
 
 # Step 1: Preinstallation
 echo "🔧 Setting up HTTPS & DNS Validation"
-read -p "Enter your DNS domain name (e.g. dns.ratcha.net): " DOMAIN
+read -p "Enter your DNS domain name (e.g. dns.domain.com): " DOMAIN
 SERVER_IP=$(curl -s https://ipinfo.io/ip)
 DNS_IP=$(dig +short "$DOMAIN")
 
