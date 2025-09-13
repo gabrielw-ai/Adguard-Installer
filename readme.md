@@ -46,10 +46,7 @@ An automatic installer for AdGuard Home that includes **DNS validation**, **SSL 
 
 3. **Uninstall (if needed):**
 
-    ```bash
-    chmod +x uninstall-adguard.sh
-    ./uninstall-adguard.sh
-    ```
+   Re-run the script
 
     The uninstaller will:
 
