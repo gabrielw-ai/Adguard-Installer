@@ -118,27 +118,27 @@ fi
 read -p "Do you want to enable DNS-over-HTTPS (DoH)? (y/yes/n/no): " DOH_CONFIRM
 case "$DOH_CONFIRM" in
   y|yes)
-    echo "🔧 Enabling DoH with domain $DOMAIN..."
-    sudo sed -i "/^tls:/,/^[^ ]/c\tls:\n  enabled: true\n  server_name: \"$DOMAIN\"\n  certificate_chain: \"/etc/letsencrypt/live/$DOMAIN/fullchain.pem\"\n  private_key: \"/etc/letsencrypt/live/$DOMAIN/privkey.pem\"" "$CONFIG_PATH"
-    echo "✅ DoH configuration updated."
+    echo "📁 Backing up AdGuardHome.yaml..."
+    sudo cp "$CONFIG_PATH" "$CONFIG_PATH.bak"
+
+    echo "🔧 Injecting DoH and upstream settings into AdGuardHome.yaml..."
+    sudo tee -a "$CONFIG_PATH" > /dev/null <<EOF
+
+tls:
+  enabled: true
+  server_name: "$DOMAIN"
+  certificate_chain: "/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
+  private_key: "/etc/letsencrypt/live/$DOMAIN/privkey.pem"
+
+upstream_dns:
+  - 127.0.0.1:5353
+EOF
+
+    echo "🔁 Restarting AdGuard Home to apply changes..."
+    sudo systemctl restart AdGuardHome
     ;;
   n|no)
     echo "➡️ Skipping DoH setup."
-    ;;
-  *)
-    echo "❌ Invalid input."; exit 1 ;;
-esac
-
-# Upstream Override
-read -p "Do you want to set AdGuard upstream to local (127.0.0.1:5353)? (y/yes/n/no): " UPSTREAM_CONFIRM
-case "$UPSTREAM_CONFIRM" in
-  y|yes)
-    echo "🔧 Updating upstream DNS to 127.0.0.1:5353..."
-    sudo sed -i "/^upstream_dns:/,/^[^ ]/c\upstream_dns:\n  - 127.0.0.1:5353" "$CONFIG_PATH"
-    echo "✅ Upstream DNS updated."
-    ;;
-  n|no)
-    echo "➡️ Keeping default upstream."
     ;;
   *)
     echo "❌ Invalid input."; exit 1 ;;
