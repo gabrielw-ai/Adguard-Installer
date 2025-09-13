@@ -58,4 +58,26 @@ sudo systemctl status AdGuardHome --no-pager
 # Step 3: Free Port 53
 echo "🔓 Freeing up port 53 from systemd-resolved..."
 sudo systemctl disable systemd-resolved
-sudo systemctl stop systemd
+sudo systemctl stop systemd-resolved
+sudo rm -f /etc/resolv.conf
+
+echo "🧠 Choose a DNS resolver:"
+echo "1) 1.1.1.1 (Cloudflare)"
+echo "2) 8.8.8.8 (Google)"
+echo "3) 9.9.9.9 (Quad9)"
+read -p "Enter your choice (1/2/3): " DNS_CHOICE
+
+case "$DNS_CHOICE" in
+  1) DNS="1.1.1.1" ;;
+  2) DNS="8.8.8.8" ;;
+  3) DNS="9.9.9.9" ;;
+  *) echo "❌ Invalid choice."; exit 1 ;;
+esac
+
+echo "nameserver $DNS" | sudo tee /etc/resolv.conf
+sudo chattr +i /etc/resolv.conf
+
+# Final
+echo "🎉 AdGuard Home is ready to use!"
+echo "🔗 Open in your browser: http://$SERVER_IP:3000"
+
