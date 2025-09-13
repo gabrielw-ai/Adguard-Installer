@@ -30,8 +30,8 @@ An automatic installer for AdGuard Home that includes **DNS validation**, **SSL 
 2. **Run the installer** with the following command:
 
     ```bash
-    chmod +x install-adguard.sh
-    ./install-adguard.sh
+    chmod +x install_adguard.sh
+    ./install_adguard.sh
     ```
 
     The installer will guide you through:
