@@ -23,7 +23,7 @@ An automatic installer for AdGuard Home that includes **DNS validation**, **SSL 
 1. **Clone** this repository to your server:
 
     ```bash
-    git clone https://github.com/username/adguard-installer.git
+    git clone https://github.com/gabrielw-ai/adguard-installer.git
     cd adguard-installer
     ```
 
