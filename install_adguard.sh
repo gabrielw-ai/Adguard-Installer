@@ -28,9 +28,15 @@ else
 fi
 
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
-  echo "🔒 SSL for $DOMAIN is already installed."
+  echo "🔒 SSL certificate for $DOMAIN is already installed."
 else
-  echo "🔐 Installing SSL with Certbot..."
+  echo "🔐 This script will now install an SSL certificate for $DOMAIN using Certbot."
+  echo "ℹ️ Make sure port 80 and 443 are open and not blocked by firewall or other services."
+  read -p "Proceed with SSL installation? (y/n): " SSL_CONFIRM
+  if [[ "$SSL_CONFIRM" != "y" ]]; then
+    echo "❌ SSL installation skipped. Exiting setup."
+    exit 1
+  fi
   sudo apt update
   sudo apt install -y certbot
   sudo certbot certonly --standalone -d "$DOMAIN"
@@ -47,7 +53,18 @@ echo "📦 Downloading and installing AdGuard Home..."
 curl -s -S -L https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz -o adguard.tar.gz
 tar -xzf adguard.tar.gz
 cd AdGuardHome
-sudo ./AdGuardHome -s install
+
+# Ensure binary is executable
+chmod +x AdGuardHome
+
+# Check if binary is valid ELF
+if file ./AdGuardHome | grep -q "ELF"; then
+  echo "✅ AdGuardHome binary is valid. Proceeding with installation..."
+  sudo ./AdGuardHome -s install
+else
+  echo "❌ ERROR: AdGuardHome binary is not valid for this system architecture."
+  exit 1
+fi
 
 # Auto-start AdGuard Home
 echo "🔁 Ensuring AdGuard Home is running as a service..."
